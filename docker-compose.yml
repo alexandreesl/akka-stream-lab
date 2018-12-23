@@ -1,0 +1,17 @@
+version: "2"
+
+services:
+  kafka:
+    image: spotify/kafka
+    ports:
+      - "2181:2181"
+      - "9092:9092"
+    environment:
+      ADVERTISED_PORT: 9092
+      ADVERTISED_HOST: localhost
+
+  redis:
+    image: redis:3.2.11
+    mem_limit: 500m
+    ports:
+      - "6379:6379"
