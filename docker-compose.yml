@@ -9,9 +9,4 @@ services:
     environment:
       ADVERTISED_PORT: 9092
       ADVERTISED_HOST: localhost
-
-  redis:
-    image: redis:3.2.11
-    mem_limit: 500m
-    ports:
-      - "6379:6379"
+      KAFKA_CREATE_TOPICS: "accounts:1:1"
