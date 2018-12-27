@@ -11,6 +11,7 @@ lazy val Versions = new {
 
 lazy val akkaDependencies = Seq(
   "com.typesafe.akka" %% "akka-http" % "10.1.5",
+  "com.lightbend.akka" %% "akka-stream-alpakka-csv" % "0.8",
   "com.typesafe.akka" %% "akka-actor" % Versions.akkaVersion,
   "com.typesafe.akka" %% "akka-stream" % Versions.akkaVersion,
   "com.typesafe.akka" %% "akka-slf4j" % Versions.akkaVersion,
