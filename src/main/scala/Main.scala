@@ -1,58 +1,54 @@
-import java.nio.charset.StandardCharsets
 import java.nio.file.Paths
 
 import akka.actor.ActorSystem
-import akka.stream.alpakka.csv.scaladsl.{CsvParsing, CsvToMap}
-import akka.stream.scaladsl.{FileIO, Flow, Framing, Sink}
+import akka.kafka.ProducerSettings
+import akka.kafka.scaladsl.Producer
+import akka.stream.scaladsl.{FileIO, Flow, Framing}
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
 import akka.util.ByteString
 import com.alexandreesl.model.Account
 import com.typesafe.scalalogging.Logger
+import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
+import spray.json._
+import com.alexandreesl.json.JsonParsing._
+import org.apache.kafka.clients.producer.ProducerRecord
+
 
 object Main extends App {
+
   implicit val system: ActorSystem = ActorSystem("akka-streams-lab")
   implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(system))
   implicit val ec = system.dispatcher
   private val logger = Logger(LoggerFactory.getLogger("Main"))
-  implicit def optionByteStringToString(opt: Option[ByteString]): String = opt.get.decodeString(StandardCharsets.UTF_8)
-  implicit def optionByteStringToLong(opt: Option[ByteString]): Long = opt.get.decodeString(StandardCharsets.UTF_8).toLong
-  implicit def optionByteStringToInt(opt: Option[ByteString]): Int = opt.get.decodeString(StandardCharsets.UTF_8).toInt
+  val config = system.settings.config.getConfig("akka.kafka.producer")
+  val producerSettings =
+    ProducerSettings(config, new StringSerializer, new StringSerializer)
+      .withBootstrapServers("localhost:9092")
 
   logger.info("Starting streams...")
 
-  private def convertToClass(csv: Map[String, ByteString]): Account = Account(csv.get("COD"),
-    csv.get("NAME"), csv.get("DOCUMENT"),
-    csv.get("AGE"), csv.get("CIVIL_STATUS"),
-    csv.get("PHONE"), csv.get("BIRTHDAY"),
-    csv.get("HOME_COUNTRY"), csv.get("HOME_STATE"),
-    csv.get("HOME_CITY"), csv.get("HOME_STREET"),
-    csv.get("HOME_STREETNUM"), csv.get("HOME_NEIGHBORHOOD"))
+  private def convertToClass(csv: Array[String]): Account = {
+    Account(csv(0).toLong,
+      csv(1), csv(2),
+      csv(3).toInt, csv(4),
+      csv(5), csv(6),
+      csv(7), csv(8),
+      csv(9), csv(10),
+      csv(11).toLong, csv(12))
+  }
 
-  private val flow = Flow[String].filter(s => !s.startsWith("COD;")).map(ByteString(_))
-    .via(CsvParsing.lineScanner(CsvParsing.SemiColon, CsvParsing.DoubleQuote, CsvParsing.DoubleQuote))
-    .via(CsvToMap.withHeaders("COD",
-      "NAME",
-      "DOCUMENT",
-      "AGE",
-      "CIVIL_STATUS",
-      "PHONE",
-      "BIRTHDAY",
-      "HOME_COUNTRY",
-      "HOME_STATE",
-      "HOME_CITY",
-      "HOME_STREET",
-      "HOME_STREETNUM",
-      "HOME_NEIGHBORHOOD"))
-    .map(map =>
-      convertToClass(map))
+  private val flow = Flow[String].filter(s => !s.contains("COD"))
+    .map(line => {
+      convertToClass(line.split(","))
+    })
 
   FileIO.fromPath(Paths.get("input1.csv"))
     .via(Framing.delimiter(ByteString("\n"), 4096)
-      .map(_.decodeString(StandardCharsets.UTF_8)))
+      .map(_.utf8String))
     .via(flow)
-    .runWith(Sink.foreach(account =>
-      logger.info(s"account: $account")))
+    .map(value => new ProducerRecord[String, String]("accounts", value.toJson.compactPrint))
+    .runWith(Producer.plainSink(producerSettings))
 
   logger.info("Stream system is initialized!")
 

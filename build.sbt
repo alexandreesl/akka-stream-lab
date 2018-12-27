@@ -10,8 +10,8 @@ lazy val Versions = new {
 }
 
 lazy val akkaDependencies = Seq(
-  "com.typesafe.akka" %% "akka-http" % "10.1.5",
   "com.lightbend.akka" %% "akka-stream-alpakka-csv" % "0.8",
+  "com.typesafe.akka" %% "akka-stream-kafka" % "0.22",
   "com.typesafe.akka" %% "akka-actor" % Versions.akkaVersion,
   "com.typesafe.akka" %% "akka-stream" % Versions.akkaVersion,
   "com.typesafe.akka" %% "akka-slf4j" % Versions.akkaVersion,
@@ -25,7 +25,12 @@ lazy val loggingDependencies = Seq(
   "org.slf4j" % "slf4j-api" % "1.7.25"
 )
 
+lazy val otherDependencies = Seq(
+  "io.spray" %% "spray-json" % "1.3.5"
+)
+
 libraryDependencies ++= (
   akkaDependencies++
-  loggingDependencies
+  loggingDependencies++
+  otherDependencies
   )
