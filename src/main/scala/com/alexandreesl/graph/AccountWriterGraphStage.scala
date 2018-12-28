@@ -26,7 +26,7 @@ object AccountWriterGraphStage {
       Source.single(AccountPersonalData(msg.acc.cod,
         msg.acc.name, msg.acc.document, msg.acc.age, msg.acc.civilStatus, msg.acc.phone, msg.acc.birthday).toJson.compactPrint)
         .map(t ⇒ ByteString(t))
-        .runWith(FileIO.toPath(personal, Set(StandardOpenOption.APPEND)))
+        .runWith(FileIO.toPath(personal, Set(StandardOpenOption.CREATE, StandardOpenOption.APPEND)))
       msg.acc
     })
 
@@ -34,7 +34,7 @@ object AccountWriterGraphStage {
       Source.single(AccountAddressData(msg.acc.cod,
         msg.acc.country, msg.acc.state, msg.acc.city, msg.acc.street, msg.acc.streetNum, msg.acc.neighBorhood).toJson.compactPrint)
         .map(t ⇒ ByteString(t))
-        .runWith(FileIO.toPath(address, Set(StandardOpenOption.APPEND)))
+        .runWith(FileIO.toPath(address, Set(StandardOpenOption.CREATE, StandardOpenOption.APPEND)))
       msg.offset
     })
 
