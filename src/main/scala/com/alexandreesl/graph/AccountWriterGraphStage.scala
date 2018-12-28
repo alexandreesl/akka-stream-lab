@@ -24,7 +24,7 @@ object AccountWriterGraphStage {
 
     val flowPersonal = Flow[InputMessage].map(msg => {
       Source.single(AccountPersonalData(msg.acc.cod,
-        msg.acc.name, msg.acc.document, msg.acc.age, msg.acc.civilStatus, msg.acc.phone, msg.acc.birthday).toJson.compactPrint)
+        msg.acc.name, msg.acc.document, msg.acc.age, msg.acc.civilStatus, msg.acc.phone, msg.acc.birthday).toJson.compactPrint + "\n")
         .map(t ⇒ ByteString(t))
         .runWith(FileIO.toPath(personal, Set(StandardOpenOption.CREATE, StandardOpenOption.APPEND)))
       msg.acc
@@ -32,7 +32,7 @@ object AccountWriterGraphStage {
 
     val flowAddress = Flow[InputMessage].map(msg => {
       Source.single(AccountAddressData(msg.acc.cod,
-        msg.acc.country, msg.acc.state, msg.acc.city, msg.acc.street, msg.acc.streetNum, msg.acc.neighBorhood).toJson.compactPrint)
+        msg.acc.country, msg.acc.state, msg.acc.city, msg.acc.street, msg.acc.streetNum, msg.acc.neighBorhood).toJson.compactPrint + "\n")
         .map(t ⇒ ByteString(t))
         .runWith(FileIO.toPath(address, Set(StandardOpenOption.CREATE, StandardOpenOption.APPEND)))
       msg.offset
