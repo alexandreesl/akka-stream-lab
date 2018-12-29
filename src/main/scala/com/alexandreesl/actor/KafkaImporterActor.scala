@@ -25,20 +25,7 @@ class KafkaImporterActor extends Actor with ActorLogging {
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val dispatcher: ExecutionContextExecutor = context.system.dispatcher
 
-  private def convertToClass(csv: Array[String]): Account = {
-    Account(csv(0).toLong,
-      csv(1), csv(2),
-      csv(3).toInt, csv(4),
-      csv(5), csv(6),
-      csv(7), csv(8),
-      csv(9), csv(10),
-      csv(11).toLong, csv(12))
-  }
 
-  private val flow = Flow[String].filter(s => !s.contains("COD"))
-    .map(line => {
-      convertToClass(line.split(","))
-    })
   private val configProducer = actorSystem.settings.config.getConfig("akka.kafka.producer")
   private val producerSettings =
     ProducerSettings(configProducer, new StringSerializer, new StringSerializer)
@@ -54,7 +41,7 @@ class KafkaImporterActor extends Actor with ActorLogging {
       val done = FileIO.fromPath(Paths.get("input1.csv"))
         .via(Framing.delimiter(ByteString("\n"), 4096)
           .map(_.utf8String))
-        .via(flow)
+        .via(KafkaImporterActor.flow)
         .map(value => new ProducerRecord[String, String]("accounts", value.toJson.compactPrint))
         .runWith(Producer.plainSink(producerSettings))
       done onComplete {
@@ -70,6 +57,21 @@ class KafkaImporterActor extends Actor with ActorLogging {
 }
 
 object KafkaImporterActor {
+
+  private def convertToClass(csv: Array[String]): Account = {
+    Account(csv(0).toLong,
+      csv(1), csv(2),
+      csv(3).toInt, csv(4),
+      csv(5), csv(6),
+      csv(7), csv(8),
+      csv(9), csv(10),
+      csv(11).toLong, csv(12))
+  }
+
+  val flow = Flow[String].filter(s => !s.contains("COD"))
+    .map(line => {
+      convertToClass(line.split(","))
+    })
 
   val name = "Kafka-Importer-actor"
 

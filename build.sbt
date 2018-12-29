@@ -16,7 +16,14 @@ lazy val akkaDependencies = Seq(
   "com.typesafe.akka" %% "akka-stream" % Versions.akkaVersion,
   "com.typesafe.akka" %% "akka-slf4j" % Versions.akkaVersion,
   "com.typesafe.akka" %% "akka-testkit" % Versions.akkaVersion % Test,
-  "com.typesafe.akka" %% "akka-stream-testkit" % Versions.akkaVersion % Test
+  "com.typesafe.akka" %% "akka-stream-testkit" % Versions.akkaVersion % Test,
+  "com.typesafe.akka" %% "akka-testkit" % Versions.akkaVersion % Test
+)
+
+lazy val testDependencies = Seq(
+  "org.scalacheck" %% "scalacheck" % "1.13.4" % Test,
+  "org.scalamock" %% "scalamock" % "4.1.0" % Test,
+  "org.scalatest" %% "scalatest" % "3.0.5" % Test
 )
 
 lazy val loggingDependencies = Seq(
@@ -32,5 +39,6 @@ lazy val otherDependencies = Seq(
 libraryDependencies ++= (
   akkaDependencies++
   loggingDependencies++
+  testDependencies++
   otherDependencies
   )
