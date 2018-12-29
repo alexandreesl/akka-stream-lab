@@ -23,6 +23,7 @@ lazy val akkaDependencies = Seq(
 lazy val testDependencies = Seq(
   "org.scalacheck" %% "scalacheck" % "1.13.4" % Test,
   "org.scalamock" %% "scalamock" % "4.1.0" % Test,
+  "org.mockito" % "mockito-core" % "2.19.0" % Test,
   "org.scalatest" %% "scalatest" % "3.0.5" % Test
 )
 

@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorSystem, PoisonPill, Props}
 import akka.kafka.{ConsumerSettings, Subscriptions}
 import akka.kafka.scaladsl.Consumer
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.{Flow, Sink}
 import com.alexandreesl.actor.KafkaExporterActor.Start
 import com.alexandreesl.graph.AccountWriterGraphStage
 import com.alexandreesl.graph.GraphMessages.{Account, InputMessage}
@@ -12,6 +12,8 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import spray.json._
 import com.alexandreesl.json.JsonParsing._
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
@@ -38,12 +40,9 @@ class KafkaExporterActor extends Actor with ActorLogging {
         .committableSource(consumerSettings, Subscriptions.topics("accounts"))
         .mapAsync(10)(msg =>
           Future.successful(InputMessage(msg.record.value.parseJson.convertTo[Account], msg.committableOffset))
-        ).via(AccountWriterGraphStage.graph)
-        .mapAsync(10) { tuple =>
-          val acc = tuple._1
-          log.info(s"persisted Account: $acc")
-          tuple._2.commitScaladsl()
-        }.runWith(Sink.ignore)
+        )
+        .via(KafkaExporterActor.flow)
+        .runWith(Sink.ignore)
       done onComplete {
         case Success(_) =>
           log.info("I completed successfully, I am so happy :)")
@@ -58,6 +57,15 @@ class KafkaExporterActor extends Actor with ActorLogging {
 }
 
 object KafkaExporterActor {
+
+  private val logger = Logger(LoggerFactory.getLogger("KafkaExporterActor"))
+
+  def flow()(implicit actorSystem: ActorSystem, materializer: ActorMaterializer) = Flow[InputMessage].via(AccountWriterGraphStage.graph)
+    .mapAsync(10) { tuple =>
+      val acc = tuple._1
+      logger.info(s"persisted Account: $acc")
+      tuple._2.commitScaladsl()
+    }
 
   val name = "Kafka-Exporter-actor"
 
