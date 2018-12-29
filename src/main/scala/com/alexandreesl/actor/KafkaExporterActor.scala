@@ -1,6 +1,6 @@
 package com.alexandreesl.actor
 
-import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
+import akka.actor.{Actor, ActorLogging, ActorSystem, PoisonPill, Props}
 import akka.kafka.{ConsumerSettings, Subscriptions}
 import akka.kafka.scaladsl.Consumer
 import akka.stream.ActorMaterializer
@@ -14,6 +14,7 @@ import spray.json._
 import com.alexandreesl.json.JsonParsing._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
+import scala.util.{Failure, Success}
 
 class KafkaExporterActor extends Actor with ActorLogging {
 
@@ -33,7 +34,7 @@ class KafkaExporterActor extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case Start =>
-      Consumer
+      val done = Consumer
         .committableSource(consumerSettings, Subscriptions.topics("accounts"))
         .mapAsync(10)(msg =>
           Future.successful(InputMessage(msg.record.value.parseJson.convertTo[Account], msg.committableOffset))
@@ -43,6 +44,13 @@ class KafkaExporterActor extends Actor with ActorLogging {
           log.info(s"persisted Account: $acc")
           tuple._2.commitScaladsl()
         }.runWith(Sink.ignore)
+      done onComplete {
+        case Success(_) =>
+          log.info("I completed successfully, I am so happy :)")
+        case Failure(ex) =>
+          log.error(ex, "I received a error! Goodbye cruel world!")
+          self ! PoisonPill
+      }
 
   }
 

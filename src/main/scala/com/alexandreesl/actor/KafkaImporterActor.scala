@@ -2,7 +2,7 @@ package com.alexandreesl.actor
 
 import java.nio.file.Paths
 
-import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
+import akka.actor.{Actor, ActorLogging, ActorSystem, PoisonPill, Props}
 import akka.kafka.ProducerSettings
 import akka.kafka.scaladsl.Producer
 import akka.stream.ActorMaterializer
@@ -16,6 +16,7 @@ import org.apache.kafka.common.serialization.StringSerializer
 import spray.json._
 
 import scala.concurrent.ExecutionContextExecutor
+import scala.util.{Failure, Success}
 
 
 class KafkaImporterActor extends Actor with ActorLogging {
@@ -50,12 +51,19 @@ class KafkaImporterActor extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case Start =>
-      FileIO.fromPath(Paths.get("input1.csv"))
+      val done = FileIO.fromPath(Paths.get("input1.csv"))
         .via(Framing.delimiter(ByteString("\n"), 4096)
           .map(_.utf8String))
         .via(flow)
         .map(value => new ProducerRecord[String, String]("accounts", value.toJson.compactPrint))
         .runWith(Producer.plainSink(producerSettings))
+      done onComplete {
+        case Success(_) =>
+          log.info("I completed successfully, I am so happy :)")
+        case Failure(ex) =>
+          log.error(ex, "I received a error! Goodbye cruel world!")
+          self ! PoisonPill
+      }
 
   }
 
