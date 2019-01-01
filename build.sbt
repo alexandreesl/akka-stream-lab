@@ -5,6 +5,8 @@ scalaVersion := "2.12.5"
 
 enablePlugins(JavaAppPackaging)
 
+mainClass in Compile := Some("Main")
+
 lazy val Versions = new {
   val akkaVersion = "2.5.11"
 }
